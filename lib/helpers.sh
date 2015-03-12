@@ -9,7 +9,19 @@ GITOLITE_REPO=~/repositories
 # some free port for cordova meteor build
 MOCK_PORT=9333
 
-CACHEDIR=/tmp/cache
+APP_DIR=/webapp
+
+cache_dir() {
+    local user=$1
+    user="${user:-$USER}"
+    echo "$APP_DIR/$user/cache"
+}
+
+apps_dir() {
+    local user=$1
+    user="${user:-$USER}"
+    echo "$APP_DIR/$user/apps"
+}
 
 indent() {
     sed -u 's/^/       /'

@@ -73,10 +73,13 @@ if [ ! -e /home/$GITUSER/.meteor ]; then
     chown $GITUSER:$GITUSER -R /home/$GITUSER/.meteor
 fi
 
-echo "Ensure cachedir '$CACHEDIR' exist" | info
-mkdir -p $CACHEDIR
-echo "Chown to $GITUSER" | indent
-chown $GITUSER:$GITUSER $CACHEDIR
+echo "Ensure cachedir exist" | info
+mkdir -p $(cache_dir $GITUSER)
+chown $GITUSER:$GITUSER $(cache_dir $GITUSER)
+
+echo "Ensure application dir exist" | info
+mkdir -p $(apps_dir $GITUSER)
+chown $GITUSER:$GITUSER $(apps_dir $GITUSER)
 
 sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
     cat<<EOF | indent
