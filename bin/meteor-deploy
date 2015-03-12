@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+set -eo pipefail;
+
+_BASEDIR=$(dirname $0)
+
+source $_BASEDIR/../lib/helpers.sh
+source $_BASEDIR/../lib/build.sh
+
+# where we must be located after setup
+BINFILE=$INSTALLDIR/bin/meteor-deploy
+
+setup_node() {
+    local DEST=$1 NODE_VERSION=$2
+
+    ARCH=$(python -c 'import platform; print platform.architecture()[0]')
+    if [[ ${ARCH} == '64bit' ]]; then
+        NODE_ARCH=x64
+    else
+        NODE_ARCH=x86
+    fi
+
+    echo "Node.js: ${NODE_VERSION} (${NODE_ARCH})" | info
+
+    mkdir -p $DEST
+    
+    NODE_DIST=node-v${NODE_VERSION}-linux-${NODE_ARCH}
+
+    CACHEDED_DIST=$CACHEDIR/$NODE_DIST.tar.gz
+
+    if [ ! -e $CACHEDED_DIST ]; then
+        echo "Downloading node distribution" | indent
+        mkdir -p $CACHEDIR
+        curl -sS http://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIST}.tar.gz -o $CACHEDED_DIST
+    fi
+
+    tar -zxf $CACHEDED_DIST -C $DEST --strip 1
+
+    export npm_config_prefix="$DEST"
+    export CPATH="$DEST"/include
+    export CPPPATH="$CPATH"
+}
+
+git_clone() {
+    GITREPO=$1; DEST=$2; REV=$3
+
+    unset GIT_DIR GIT_WORK_TREE
+    git clone -q $GITREPO $DEST &> /dev/null
+    pushd $DEST > /dev/null
+      git config advice.detachedHead false
+      git checkout $REV &> /dev/null
+      git submodule update --init --recursive &> /dev/null
+      find -name .git -prune -exec rm -rf {} \; > /dev/null
+    popd > /dev/null
+}
+
+build_bundle() {
+    local WRKDIR=$1 BUNDLE=$2
+
+    pushd $WRKDIR > /dev/null
+      if [ -f ./.meteor/platforms ]; then 
+          # build for 0.9.4+
+          # remove mobile platforms while building
+          have_cordova=$(grep 'ios\|android\|firefoxos' ./.meteor/platforms || true)
+          if [ "$have_cordova" ]; then
+              buildMeteorAppForCordova $BUNDLE
+          else
+              buildMeteorApp $BUNDLE
+          fi
+      else
+          # build for 0.9.3
+          buildMeteorApp $BUNDLE
+      fi
+    popd > /dev/null
+}
+
+compile() {
+    local BUNDLE=$1 NODE_DIR=$2
+    local NODE_BIN=$NODE_DIR/bin
+
+    echo "Install node-gyp" | info
+    $NODE_BIN/npm install -g node-gyp > /dev/null
+    
+    pushd $BUNDLE/programs/server > /dev/null
+      if [ -d ./npm ]; then
+          cd npm
+          rebuild_binary_npm_modules $NODE_BIN
+          cd ../
+      fi
+
+      if [ -d ./node_modules ]; then
+          cd ./node_modules
+          gyp_rebuild_inside_node_modules $NODE_BIN
+          cd ../
+      fi
+
+      if [ -f package.json ]; then
+          # support for 0.9
+          $NODE_BIN/npm install
+      else
+          # support for older versions
+          $NODE_BIN/npm install fibers
+          $NODE_BIN/npm install bcrypt
+      fi
+    popd > /dev/null
+
+}
+
+build_all() {
+  local REPO=$1; REV=$2
+
+  APPGIT=$(repo_directory $REPO)
+
+  TMP_WORK_DIR=$(mktemp -d)
+    chmod 755 $TMP_WORK_DIR
+
+  APP_BUILDDIR=$TMP_WORK_DIR/app
+    mkdir $APP_BUILDDIR
+    echo "Cloning to temporary directory" | info
+    git_clone $APPGIT $APP_BUILDDIR $REV
+
+  NODE_DIR=$TMP_WORK_DIR/nodejs
+    echo "Install Node.js" | task
+    setup_node $NODE_DIR '0.10.33'
+
+  BUNDLE_DIR=$TMP_WORK_DIR
+  BUNDLE=$BUNDLE_DIR/bundle
+  echo "Bundling bundle" | task
+    build_bundle $APP_BUILDDIR $BUNDLE_DIR
+
+  echo "Compile bundle" | task
+    compile $BUNDLE $NODE_DIR
+  echo "Done" | info
+}
+
+case "$1" in
+    help)
+        cat<<EOF
+Usage:
+    help                                 Show this help
+    setup                                Install this script
+    repo <repo>                          Setup prereceive hook for repo
+    prereceive-hook                      Run hook, build
+EOF
+        ;;
+    setup)
+        echo "Install scripts" | task
+        cp -vf $0 $BINFILE | indent
+        cp -rv $_BASEDIR/../lib $INSTALLDIR/ | indent
+        ;;
+    repo)
+        if [ -z $2 ]; then
+            echo "Usage:"
+            echo "deploy-meteor repo <reponame>"
+            exit 1;
+        fi
+        REPO="$2";
+
+        PRERECEIVE_HOOK=$(repo_directory $REPO)/hooks/pre-receive
+        if [ ! -d $(repo_directory $REPO) ]; then
+            echo "There no such repositary: $REPO"
+            echo "Please, setup gitolite-admin"
+            exit 1
+        fi
+
+        cat <<SCRIPT> $PRERECEIVE_HOOK
+#!/usr/bin/env bash
+
+$BINFILE prereceive-hook "$REPO"
+SCRIPT
+        chmod +x $PRERECEIVE_HOOK
+        echo "Created hook: $PRERECEIVE_HOOK" | task
+        ;;
+    prereceive-hook)
+        REPO=$2
+        while read oldrev newrev refname
+        do
+            if [[ $refname = "refs/heads/master" ]] ; then
+                echo "Build $REPO" | task
+                build_all $REPO $newrev
+            else
+                echo $'\e[1G\e[K'"-----> WARNING: deploy did not complete, you must push to master."
+            fi
+
+        done
+        ;;
+    setup-node)
+        $APP=2
+        
+esac
