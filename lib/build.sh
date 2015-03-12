@@ -11,7 +11,6 @@ setOriginalPlatforms() {
 
 buildMeteorApp() {
     local APP=$1
-    pwd | indent
     meteor build --directory $APP
 }
 
