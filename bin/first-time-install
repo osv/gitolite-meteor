@@ -1,0 +1,103 @@
+#!/bin/bash
+set -eo pipefail
+
+_BASEDIR=$(dirname $0)
+
+source $_BASEDIR/../lib/helpers.sh
+
+GITUSER=$1
+GITUSER="${GITUSER:-git}"
+
+GITOLITE=/home/$GITUSER/gitolite
+BINDIR=/home/$GITUSER/bin
+
+## deb install pkgs
+need_pkgs="build-essential libssl-dev git curl"
+need_install=
+
+debInstlaed() {
+    dpkg-query -Wf'${db:Status-abbrev}' "$1" 2>/dev/null | grep -q '^i'
+}
+
+echo "Bootstrapping" | info
+for pkg in $need_pkgs; do
+    echo -n "Checking for $pkg... "
+    if debInstlaed "$pkg"; then
+        echo "yes"
+    else
+        need_install="$pkg $need_install"
+        echo "no"
+    fi
+done
+
+if [[ ! -z "$need_install" ]]; then
+    echo "Install packages" | task
+    echo "sudo apt-get update" | indent
+    sudo apt-get update > /dev/null
+    echo "sudo apt-get -y install $need_install" | indent
+    sudo apt-get -y install $need_install > /dev/null
+fi
+
+# install gitolite if not installed in GITUSER folder
+if [ ! -e $GITOLITE ]; then
+
+    echo "Installing gitolite" | task
+
+    adduser \
+        --system \
+        --shell /bin/bash \
+        --gecos 'git control system' \
+        --group \
+        --disabled-password \
+        --home /home/$GITUSER \
+        $GITUSER | indent
+
+    sudo -u $GITUSER mkdir -p $BINDIR
+
+    sudo -u $GITUSER -H git clone git://github.com/gitlabhq/gitolite $GITOLITE | indent
+
+    # install gitolite
+    sudo -u $GITUSER -H $GITOLITE/install -ln $BINDIR | indent
+fi
+
+echo "sudoers: allow user '$GITUSER' reload nginx" | info
+
+cat <<EOF> /etc/sudoers.d/usr-$GITUSER-nginx-reload
+# Разрешаем выполнять перезагрузку nginx
+%$GITUSER ALL=(ALL)NOPASSWD:/etc/init.d/nginx reload
+EOF
+
+if [ ! -e /home/$GITUSER/.meteor ]; then
+    echo "Installing meteor" | info
+    sudo -u $GITUSER -H curl -sS https://install.meteor.com | HOME="/home/$GITUSER" /bin/sh
+    chown $GITUSER:$GITUSER -R /home/$GITUSER/.meteor
+fi
+
+echo "Ensure cachedir '$CACHEDIR' exist" | info
+mkdir -p $CACHEDIR
+echo "Chown to $GITUSER" | indent
+chown $GITUSER:$GITUSER $CACHEDIR
+
+sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
+    cat<<EOF | indent
+??? For updating use:
+??? sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
+EOF
+
+if [ ! -e /home/$GITUSER/.ssh/authorized_keys ]; then
+    cat<<EOF | indent
+-----------------------------------------------------------------
+!!! Looks like gitolite install not finished.
+!!! Need to register your ssh public key.
+!!! Run: 
+!!!    sudo -u $GITUSER -H $BINDIR/gitolite setup -pk yourname.pub
+-----------------------------------------------------------------
+EOF
+fi
+
+echo "Done." | task
+cat<<EOF | indent
+??? No you can setup git hook:
+??? For example, for repositary "testing", do:
+??? sudo -u $GITUSER -H $BINDIR/meteor-deploy repo testing
+EOF
