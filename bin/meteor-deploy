@@ -25,6 +25,8 @@ setup_node() {
     
     NODE_DIST=node-v${NODE_VERSION}-linux-${NODE_ARCH}
 
+    CACHEDIR=$(cache_dir)
+
     CACHEDED_DIST=$CACHEDIR/$NODE_DIST.tar.gz
 
     if [ ! -e $CACHEDED_DIST ]; then
@@ -96,18 +98,50 @@ compile() {
 
       if [ -f package.json ]; then
           # support for 0.9
-          $NODE_BIN/npm install
+          $NODE_BIN/npm install | indent
       else
           # support for older versions
-          $NODE_BIN/npm install fibers
-          $NODE_BIN/npm install bcrypt
+          $NODE_BIN/npm install fibers | indent
+          $NODE_BIN/npm install bcrypt | indent
       fi
     popd > /dev/null
 
 }
 
+deploy() {
+    local REPO=$1 WRK_DIR=$2
+   
+    APP_PATH=$(apps_dir)/$REPO; OLD_APP_PATH=$APPS_DIR.old
+
+    # remove old app, if it exists
+    if [ -d $OLD_APP_PATH ]; then
+        rm -rf $OLD_APP_PATH;
+    fi
+
+    ## backup current version
+    if [[ -d $APP_PATH ]]; then
+        echo "Make backup for old app to $OLD_APP_PATH" | indent
+        mv $APP_PATH $OLD_APP_PATH
+    fi
+
+    # no need to have code of app
+    rm -rf $WRK_DIR/app
+
+    # mov work dir to 
+    mv $WRK_DIR $APP_PATH
+
+    if [ -e /etc/init.d/nginx ]; then
+        echo "Reloading nginx" | indent
+        sudo /etc/init.d/nginx reload > /dev/null
+    else
+        echo "Looks you have no nginx, skip reloading" | indent
+    fi
+
+    echo "App located $APP_PATH" | info
+}
+
 build_all() {
-  local REPO=$1; REV=$2
+  local REPO=$1 REV=$2
 
   APPGIT=$(repo_directory $REPO)
 
@@ -130,6 +164,10 @@ build_all() {
 
   echo "Compile bundle" | task
     compile $BUNDLE $NODE_DIR
+
+  echo "Deploy app" | task
+    deploy $REPO $TMP_WORK_DIR
+
   echo "Done" | info
 }
 
