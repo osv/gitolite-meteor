@@ -130,6 +130,19 @@ deploy() {
     # mov work dir to 
     mv $WRK_DIR $APP_PATH
 
+    NGINX_CONF=$APP_PATH/root_nginx.conf
+    echo "Created passenger $NGINX_CONF" | info
+    cat <<EOF> $NGINX_CONF
+location / {
+    passenger_enabled         on;
+    passenger_sticky_sessions on;
+    passenger_app_type        node;
+    passenger_startup_file    main.js;
+    root                      $APP_PATH/bundle/public;
+    passenger_nodejs          $APP_PATH/nodejs/bin/node;
+}
+EOF
+
     if [ -e /etc/init.d/nginx ]; then
         echo "Reloading nginx" | indent
         sudo /etc/init.d/nginx reload > /dev/null
@@ -164,6 +177,10 @@ build_all() {
 
   echo "Compile bundle" | task
     compile $BUNDLE $NODE_DIR
+
+  # dirs for passanger
+  mkdir -p $BUNDLE/public
+  mkdir -p $BUNDLE/tmp
 
   echo "Deploy app" | task
     deploy $REPO $TMP_WORK_DIR
