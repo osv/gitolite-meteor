@@ -181,6 +181,7 @@ build_all() {
   # dirs for passanger
   mkdir -p $BUNDLE/public
   mkdir -p $BUNDLE/tmp
+  echo $REV > $TMP_WORK_DIR/rev
 
   echo "Deploy app" | task
     deploy $REPO $TMP_WORK_DIR
