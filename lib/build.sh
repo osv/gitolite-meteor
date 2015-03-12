@@ -63,9 +63,9 @@ gyp_rebuild_inside_node_modules () {
             rm -rf node_modules
             if [ -f binding.gyp ]; then
                 $NODE_BIN/node-gyp rebuild || :
-                $NODE_BIN/npm install
+                $NODE_BIN/npm install | indent
             else
-                $NODE_BIN/npm install
+                $NODE_BIN/npm install | indent
             fi
         fi
 
