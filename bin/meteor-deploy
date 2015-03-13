@@ -131,8 +131,32 @@ deploy() {
     mv $WRK_DIR $APP_PATH
 
     NGINX_CONF=$APP_PATH/root_nginx.conf
-    echo "Created passenger $NGINX_CONF" | info
+    echo "Example of nginx-passenger config: $NGINX_CONF" | info
     cat <<EOF> $NGINX_CONF
+# # Example of config file for use with passanger
+# # You can include this file to your nginx config:
+#
+# server {
+#     listen       8080;
+#     server_name  localhost;
+#
+#     # include bundle
+#     include "/webapp/$USER/apps/$REPO/root_nginx.conf";
+#
+#     # Some env vars, depending on your app.
+#     passenger_env_var  MONGO_URL mongodb://localhost:27017/YOUDB;
+#     passenger_env_var  ROOT_URL http://EXAMPLE.COM;
+#
+#     # not for prodaction, but for testing
+#     passenger_friendly_error_pages on;
+#
+#     # may be you wish more instance?
+#     passenger_min_instances 2;
+#
+#     # passenger_env_var _PASSENGER_NODE_CONTROL_SERVER 1;
+#
+# }
+ 
 location / {
     passenger_enabled         on;
     passenger_sticky_sessions on;
@@ -143,12 +167,12 @@ location / {
 }
 EOF
 
-    if [ -e /etc/init.d/nginx ]; then
-        echo "Reloading nginx" | indent
-        sudo /etc/init.d/nginx reload > /dev/null
-    else
-        echo "Looks you have no nginx, skip reloading" | indent
-    fi
+    # if [ -e /etc/init.d/nginx ]; then
+    #     echo "Reloading nginx" | indent
+    #     sudo /etc/init.d/nginx reload > /dev/null
+    # else
+    #     echo "Looks you have no nginx, skip reloading" | indent
+    # fi
 
     echo "App located $APP_PATH" | info
 }
@@ -181,6 +205,8 @@ build_all() {
   # dirs for passanger
   mkdir -p $BUNDLE/public
   mkdir -p $BUNDLE/tmp
+  touch $BUNDLE/tmp/restart.txt
+
   echo $REV > $TMP_WORK_DIR/rev
 
   echo "Deploy app" | task
