@@ -23,6 +23,12 @@ apps_dir() {
     echo "$APP_DIR/$user/apps"
 }
 
+hook_dir() {
+    local user=$1
+    user="${user:-$USER}"
+    echo "$APP_DIR/$user/hooks"
+}
+
 indent() {
     sed -u 's/^/       /'
 }
