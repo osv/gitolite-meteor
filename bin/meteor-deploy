@@ -124,9 +124,6 @@ deploy() {
         mv $APP_PATH $OLD_APP_PATH
     fi
 
-    # no need to have code of app
-    rm -rf $WRK_DIR/app
-
     # mov work dir to 
     mv $WRK_DIR $APP_PATH
 
@@ -177,6 +174,42 @@ EOF
     echo "App located $APP_PATH" | info
 }
 
+post_deploy() {
+    local REPO=$1 WRK_DIR=$2
+    local APP_PATH HOOK_DIR
+
+    APP_PATH=$(apps_dir)/$REPO;
+
+    HOOK_DIR=$(hook_dir)/$REPO
+
+        cat<<EOF
+APP_PATH $APP_PATH
+HOOK_DIR $HOOK_DIR
+WRK_DIR $WRK_DIR
+EOF
+
+    mkdir -p $HOOK_DIR
+
+    echo "Run post install scripts in $HOOK_DIR" | task   
+
+    for file in $HOOK_DIR/*
+    do
+        if [[ -x $file ]]; then
+            echo "Run $file" | indent
+            $file $APP_PATH
+        fi
+    done
+}
+
+clean() {
+    local REPO=$1 WRK_DIR=$2
+
+    # no need to have code of app
+    echo "Cleaning rm -rf $WRK_DIR/app" | info
+    rm -rf $WRK_DIR/app
+
+}
+
 build_all() {
   local REPO=$1 REV=$2
 
@@ -212,6 +245,11 @@ build_all() {
   echo "Deploy app" | task
     deploy $REPO $TMP_WORK_DIR
 
+  post_deploy $REPO $TMP_WORK_DIR
+
+
+  clean $REPO $TMP_WORK_DIR
+
   echo "Done" | info
 }
 
@@ -220,9 +258,9 @@ case "$1" in
         cat<<EOF
 Usage:
     help                                 Show this help
-    setup                                Install this script
-    repo <repo>                          Setup prereceive hook for repo
-    prereceive-hook                      Run hook, build
+    setup <gituser>                      Install this script
+    repo  <gituser> <repo>               Setup prereceive hook for repo
+    prereceive-hook <gituser> <repo>     Run hook, build
 EOF
         ;;
     setup)
