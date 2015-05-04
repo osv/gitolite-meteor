@@ -253,14 +253,20 @@ build_all() {
   echo "Done" | info
 }
 
-case "$1" in
+COMMAND=$1
+
+if [ -z $COMMAND ]; then
+    COMMAND="help"
+fi
+
+case $COMMAND in
     help)
         cat<<EOF
 Usage:
     help                                 Show this help
-    setup <gituser>                      Install this script
-    repo  <gituser> <repo>               Setup prereceive hook for repo
-    prereceive-hook <gituser> <repo>     Run hook, build
+    setup                                Install this script
+    repo <gituser> <repo>                Setup prereceive hook for repo
+    prereceive-hook <repo>               Run hook, build
 EOF
         ;;
     setup)
@@ -269,17 +275,29 @@ EOF
         cp -rv $_BASEDIR/../lib $INSTALLDIR/ | indent
         ;;
     repo)
+        if [ -z $3 ]; then
+            echo "Usage:"
+            echo "deploy-meteor repo <gituser> <reponame>"
+            exit 1;
+        fi
+	GITUSER=$2
+	REPO=$3
+	sudo -u $GITUSER -H $0 repo-setup $REPO
+	;;
+    repo-setup)
         if [ -z $2 ]; then
             echo "Usage:"
-            echo "deploy-meteor repo <reponame>"
+            echo "deploy-meteor repo-setup <reponame>"
             exit 1;
         fi
         REPO="$2";
-
-        PRERECEIVE_HOOK=$(repo_directory $REPO)/hooks/pre-receive
-        if [ ! -d $(repo_directory $REPO) ]; then
-            echo "There no such repositary: $REPO"
+	REPODIR=$(repo_directory $REPO)
+        PRERECEIVE_HOOK=$REPODIR/hooks/pre-receive
+        if [ ! -d $REPODIR ]; then
+            echo "There no such repositary: $REPODIR"
             echo "Please, setup gitolite-admin"
+	    echo "try run: "
+	    echo "sudo -u YOURGITUSER -H /home/YOURGUTUSER/meteor-deploy repo testing"
             exit 1
         fi
 
@@ -305,6 +323,10 @@ SCRIPT
         done
         ;;
     setup-node)
-        $APP=2
+        $APP=2   
+	;;
+    *)
+	echo "Unknown command \"$COMMAND\""
+	;;
         
 esac
