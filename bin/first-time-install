@@ -6,6 +6,12 @@ _BASEDIR=$(dirname $0)
 source $_BASEDIR/../lib/helpers.sh
 
 GITUSER=$1
+
+if [ -z $GITUSER ]; then
+    echo "USAGE: first-time-install GITUSER"
+    exit;
+fi
+
 GITUSER="${GITUSER:-git}"
 
 GITOLITE=/home/$GITUSER/gitolite
