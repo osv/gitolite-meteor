@@ -113,5 +113,5 @@ echo "Done." | task
 cat<<EOF | indent
 ??? No you can setup git hook:
 ??? For example, for repositary "testing", do:
-??? sudo -u $GITUSER -H $BINDIR/meteor-deploy repo testing
+??? sudo -u $GITUSER -H $BINDIR/meteor-deploy repo $GITUSER testing
 EOF
