@@ -1,0 +1,129 @@
+Deploy meteor to server via git hook. Good to use with Passenger nginx.
+
+* Setup
+
+Installing to your server =YOURHOST= by creating, let say =gitmeteor- user for git access:
+
+#+begin_example
+% sudo ./bin/first-time-install gitmeteor
+-----> Bootstrapping
+Checking for build-essential... yes
+Checking for libssl-dev... yes
+Checking for git... yes
+Checking for curl... yes
+=====> Installing gitolite
+       Adding system user `gitmeteor' (UID 111) ...
+       Adding new group `gitmeteor' (GID 116) ...
+       Adding new user `gitmeteor' (UID 111) with group `gitmeteor' ...
+       Creating home directory `/home/gitmeteor' ...
+Cloning into '/home/gitmeteor/gitolite'...
+remote: Counting objects: 8607, done.
+remote: Total 8607 (delta 0), reused 0 (delta 0), pack-reused 8607
+Receiving objects: 100% (8607/8607), 4.26 MiB | 1.65 MiB/s, done.
+Resolving deltas: 100% (4911/4911), done.
+Checking connectivity... done.
+-----> sudoers: allow user 'gitmeteor' reload nginx
+-----> Installing meteor
+Downloading Meteor distribution
+######################################################################## 100.0%
+
+Meteor 1.1.0.2 has been installed in your home directory (~/.meteor).
+Writing a launcher script to /usr/local/bin/meteor for your convenience.
+
+To get started fast:
+
+  $ meteor create ~/my_cool_app
+  $ cd ~/my_cool_app
+  $ meteor
+
+Or see the docs at:
+
+  docs.meteor.com
+
+-----> Ensure cachedir exist
+-----> Ensure application dir exist
+-----> Ensure post install hook directory exist
+=====> Install scripts
+       ‘./bin/meteor-deploy’ -> ‘/home/gitmeteor/bin/meteor-deploy’
+       ‘./bin/../lib’ -> ‘/home/gitmeteor/lib’
+       ‘./bin/../lib/helpers.sh’ -> ‘/home/gitmeteor/lib/helpers.sh’
+       ‘./bin/../lib/build.sh’ -> ‘/home/gitmeteor/lib/build.sh’
+       ??? For updating use:
+       ??? sudo -u gitmeteor -H ./bin/meteor-deploy setup
+       -----------------------------------------------------------------
+       !!! Looks like gitolite install not finished.
+       !!! Need to register your ssh public key.
+       !!! Run:
+       !!!    sudo -u gitmeteor -H /home/gitmeteor/bin/gitolite setup -pk yourname.pub
+       -----------------------------------------------------------------
+=====> Done.
+       ??? No you can setup git hook:
+       ??? For example, for repositary "testing", do:
+       ??? sudo -u gitmeteor -H /home/gitmeteor/bin/meteor-deploy repo gitmeteor testing
+
+#+end_example
+
+Add your rsa key to gitolite user:
+
+#+begin_example
+% sudo -u gitmeteor -H /home/gitmeteor/bin/gitolite setup -pk yourname.pub
+#+end_example
+
+Now you can configure gitolite repositaries by cloning gitolite admin repo:
+
+#+begin_example
+% git clone GITMETEOR@YOURHOST:gitolite-admin
+#+end_example
+
+After you initialize project repositary  (in example it =testing=) you
+may add git-hook for deploying meteor:
+
+#+begin_example
+% sudo /home/gitmeteor/bin/meteor-deploy repo gitmeteor testing
+=====> Created hook: /home/gitmeteor/repositories/testing.git/hooks/pre-receive
+#+end_example
+
+You SHOULD run =/home/gitmeteor/bin/meteor-deploy= no =./bin/meteor-deploy=
+
+Push to remote =gitmeteor@YOUHOST:testing= you meteor app
+
+#+begin_example
+% git remote add deploy gitmeteor@YOUHOST:testing
+% git push deploy master
+Counting objects: 23, done.
+Delta compression using up to 2 threads.
+Compressing objects: 100% (13/13), done.
+Writing objects: 100% (13/13), 1024 bytes, done.
+Total 13 (delta 11), reused 0 (delta 0)
+remote: =====> Build anonfm
+remote: -----> Cloning to temporary directory
+remote: =====> Install Node.js
+remote: -----> Node.js: 0.10.36 (x64)
+remote: =====> Bundling bundle
+...
+remote: -----> Example of nginx-passenger config: /webapp/meteor/apps/testing/root_nginx.conf
+remote: -----> App located /webapp/meteor/apps/testing
+remote: APP_PATH /webapp/gitmeteor/apps/testing
+remote: HOOK_DIR /webapp/gitmeteor/hooks/testing
+remote: WRK_DIR /tmp/tmp.TgQWs05kDk
+remote: =====> Run post install scripts in /webapp/meteor/hooks/anonfm
+remote: -----> Cleaning rm -rf /tmp/tmp.TgQWs05kDk/app
+remote: -----> Done
+#+end_example
+
+=root_nging.conf= looks like:
+
+#+begin_example
+location / {
+    passenger_enabled         on;
+    passenger_sticky_sessions on;
+    passenger_app_type        node;
+    passenger_startup_file    main.js;
+    root                      /webapp/meteor/apps/testing/bundle/public;
+    passenger_nodejs          /webapp/meteor/apps/testing/nodejs/bin/node;
+}
+#+end_example
+
+You project may contain file =.nodeversion= for specify Node version.
+
+
