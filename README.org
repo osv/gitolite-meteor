@@ -2,7 +2,7 @@ Deploy meteor to server via git hook. Good to use with Passenger nginx.
 
 * Setup
 
-Installing to your server =YOURHOST= by creating, let say =gitmeteor- user for git access:
+Installing to your server =YOURHOST= by creating, let say =gitmeteor= user for git access:
 
 #+begin_example
 % sudo ./bin/first-time-install gitmeteor
@@ -69,10 +69,10 @@ Add your rsa key to gitolite user:
 % sudo -u gitmeteor -H /home/gitmeteor/bin/gitolite setup -pk yourname.pub
 #+end_example
 
-Now you can configure gitolite repositaries by cloning gitolite admin repo:
+Now you can configure gitolite repositories by cloning gitolite admin repo:
 
 #+begin_example
-% git clone GITMETEOR@YOURHOST:gitolite-admin
+% git clone gitmeteor@YOURHOST:gitolite-admin
 #+end_example
 
 After you initialize project repositary  (in example it =testing=) you
@@ -83,7 +83,7 @@ may add git-hook for deploying meteor:
 =====> Created hook: /home/gitmeteor/repositories/testing.git/hooks/pre-receive
 #+end_example
 
-You SHOULD run =/home/gitmeteor/bin/meteor-deploy= no =./bin/meteor-deploy=
+You SHOULD run =/home/gitmeteor/bin/meteor-deploy= not =./bin/meteor-deploy=
 
 Push to remote =gitmeteor@YOUHOST:testing= you meteor app
 
