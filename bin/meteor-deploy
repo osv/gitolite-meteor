@@ -185,7 +185,6 @@ post_deploy() {
         cat<<EOF
 APP_PATH $APP_PATH
 HOOK_DIR $HOOK_DIR
-WRK_DIR $WRK_DIR
 EOF
 
     mkdir -p $HOOK_DIR
@@ -205,7 +204,6 @@ clean() {
     local REPO=$1 WRK_DIR=$2
 
     # no need to have code of app
-    echo "Cleaning rm -rf $WRK_DIR/app" | info
     rm -rf $WRK_DIR/app
 
 }
@@ -223,7 +221,14 @@ build_all() {
     echo "Cloning to temporary directory" | info
     git_clone $APPGIT $APP_BUILDDIR $REV
 
-  NODE_DIR=$TMP_WORK_DIR/nodejs
+  if [ -e $APP_BUILDDIR/.nodeversion ]; then
+      NODE_VER=$(cat $APP_BUILDDIR/.nodeversion)
+      echo "Used node version from .nodeversion" | info
+  else
+      NODE_VER='0.10.36'
+  fi
+
+    NODE_DIR=$TMP_WORK_DIR/nodejs
     echo "Install Node.js" | task
     setup_node $NODE_DIR '0.10.36'
 
