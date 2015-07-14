@@ -49,7 +49,7 @@ if [ ! -e $GITOLITE ]; then
 
     echo "Installing gitolite" | task
 
-    adduser \
+    sudo adduser \
         --system \
         --shell /bin/bash \
         --gecos 'git control system' \
@@ -113,5 +113,5 @@ echo "Done." | task
 cat<<EOF | indent
 ??? No you can setup git hook:
 ??? For example, for repositary "testing", do:
-??? sudo -u $GITUSER -H $BINDIR/meteor-deploy repo $GITUSER testing
+??? $BINDIR/meteor-deploy repo $GITUSER testing
 EOF
