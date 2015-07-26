@@ -1,8 +1,16 @@
+* What?
+
 Deploy meteor to server via git hook. Good to use with Passenger nginx.
 
-* Setup
+This script install gitolite and after you can configure githook that
+build Meteor app, place it in =/webapp/<YOURGITUUSER>/apps/<APPNAME>/app/=,
+and nodejs in =/webapp/<YOURGITUUSER>/apps/<APPNAME>/node/=
 
-Installing to your server =YOURHOST= by creating, let say =gitmeteor= user for git access:
+* Workflow
+
+  In this example used server name =YOURHOST=, git user =gitmeteor=
+
+  First you need install this script.
 
 #+begin_example
 % sudo ./bin/first-time-install gitmeteor
@@ -45,47 +53,38 @@ Or see the docs at:
 -----> Ensure post install hook directory exist
 =====> Install scripts
        ‘./bin/meteor-deploy’ -> ‘/home/gitmeteor/bin/meteor-deploy’
-       ‘./bin/../lib’ -> ‘/home/gitmeteor/lib’
        ‘./bin/../lib/helpers.sh’ -> ‘/home/gitmeteor/lib/helpers.sh’
        ‘./bin/../lib/build.sh’ -> ‘/home/gitmeteor/lib/build.sh’
-       ??? For updating use:
-       ??? sudo -u gitmeteor -H ./bin/meteor-deploy setup
        -----------------------------------------------------------------
        !!! Looks like gitolite install not finished.
        !!! Need to register your ssh public key.
        !!! Run:
        !!!    sudo -u gitmeteor -H /home/gitmeteor/bin/gitolite setup -pk yourname.pub
        -----------------------------------------------------------------
+=====> Install pre recieve hook
+       /home/gitmeteor/.gitolite/hooks/common/pre-receive
 =====> Done.
        ??? No you can setup git hook:
        ??? For example, for repositary "testing", do:
-       ??? sudo -u gitmeteor -H /home/gitmeteor/bin/meteor-deploy repo gitmeteor testing
-
+       ??? /home/gitmeteor/bin/meteor-deploy repo meteor testing
 #+end_example
 
-Add your rsa key to gitolite user:
+   Add your rsa key to gitolite user:
 
 #+begin_example
 % sudo -u gitmeteor -H /home/gitmeteor/bin/gitolite setup -pk yourname.pub
 #+end_example
 
-Now you can configure gitolite repositories by cloning gitolite admin repo:
+   Now you can configure gitolite repositories by cloning gitolite admin repo:
+   See http://gitolite.com/gitolite/conf.html for more info.
 
 #+begin_example
 % git clone gitmeteor@YOURHOST:gitolite-admin
 #+end_example
 
-After you initialize project repositary  (in example it =testing=) you
-may add git-hook for deploying meteor:
+   That all, for testing you may use =testing= repo (created by gitolite),
 
-#+begin_example
-% sudo /home/gitmeteor/bin/meteor-deploy repo gitmeteor testing
-=====> Created hook: /home/gitmeteor/repositories/testing.git/hooks/pre-receive
-#+end_example
-
-You SHOULD run =/home/gitmeteor/bin/meteor-deploy= not =./bin/meteor-deploy=
-
-Push to remote =gitmeteor@YOUHOST:testing= you meteor app
+   Push to remote =gitmeteor@YOUHOST:testing= you meteor app
 
 #+begin_example
 % git remote add deploy gitmeteor@YOUHOST:testing
@@ -111,7 +110,9 @@ remote: -----> Cleaning rm -rf /tmp/tmp.TgQWs05kDk/app
 remote: -----> Done
 #+end_example
 
-=root_nging.conf= looks like:
+App bundle located in =/webapp/gitmeteor/apps/testing/bundle=
+
+You may include nginx =/webapp/gitmeteor/apps/testing/root_nging.conf= that looks like:
 
 #+begin_example
 location / {
@@ -119,11 +120,11 @@ location / {
     passenger_sticky_sessions on;
     passenger_app_type        node;
     passenger_startup_file    main.js;
-    root                      /webapp/meteor/apps/testing/bundle/public;
-    passenger_nodejs          /webapp/meteor/apps/testing/nodejs/bin/node;
+    root                      /webapp/gitmeteor/apps/testing/bundle/public;
+    passenger_nodejs          /webapp/gitmeteor/apps/testing/nodejs/bin/node;
 }
 #+end_example
 
-You project may contain file =.nodeversion= for specify Node version.
+You project may contain file =.nodeversion= if you need specify Node version, default is 0.10.36.
 
 
