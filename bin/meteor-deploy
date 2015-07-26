@@ -6,9 +6,6 @@ _BASEDIR=$(dirname $0)
 source $_BASEDIR/../lib/helpers.sh
 source $_BASEDIR/../lib/build.sh
 
-# where we must be located after setup
-BINFILE=$INSTALLDIR/bin/meteor-deploy
-
 setup_node() {
     local DEST=$1 NODE_VERSION=$2
 
@@ -270,50 +267,8 @@ case $COMMAND in
         cat<<EOF
 Usage:
     help                                 Show this help
-    setup                                Install this script
-    repo <gituser> <repo>                Setup prereceive hook for repo
     prereceive-hook <repo>               Run hook, build
 EOF
-        ;;
-    setup)
-        echo "Install scripts" | task
-        cp -vf $0 $BINFILE | indent
-        cp -rv $_BASEDIR/../lib $INSTALLDIR/ | indent
-        ;;
-    repo)
-        if [ -z $3 ]; then
-            echo "Usage:"
-            echo "deploy-meteor repo <gituser> <reponame>"
-            exit 1;
-        fi
-	GITUSER=$2
-	REPO=$3
-	sudo -u $GITUSER -H $0 repo-setup $REPO
-	;;
-    repo-setup)
-        if [ -z $2 ]; then
-            echo "Usage:"
-            echo "deploy-meteor repo-setup <reponame>"
-            exit 1;
-        fi
-        REPO="$2";
-	REPODIR=$(repo_directory $REPO)
-        PRERECEIVE_HOOK=$REPODIR/hooks/pre-receive
-        if [ ! -d $REPODIR ]; then
-            echo "There no such repositary: $REPODIR"
-            echo "Please, setup gitolite-admin"
-	    echo "try run: "
-	    echo "sudo -u YOURGITUSER -H /home/YOURGUTUSER/meteor-deploy repo testing"
-            exit 1
-        fi
-
-        cat <<SCRIPT> $PRERECEIVE_HOOK
-#!/usr/bin/env bash
-
-$BINFILE prereceive-hook "$REPO"
-SCRIPT
-        chmod +x $PRERECEIVE_HOOK
-        echo "Created hook: $PRERECEIVE_HOOK" | task
         ;;
     prereceive-hook)
         REPO=$2
@@ -328,9 +283,6 @@ SCRIPT
 
         done
         ;;
-    setup-node)
-        $APP=2   
-	;;
     *)
 	echo "Unknown command \"$COMMAND\""
 	;;

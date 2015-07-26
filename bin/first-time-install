@@ -88,15 +88,19 @@ mkdir -p $(apps_dir $GITUSER)
 chown $GITUSER:$GITUSER $(apps_dir $GITUSER)
 
 echo "Ensure post install hook directory exist" | info
+echo "You may put your post install hook script here" | indent
 HOOK_DIR=$(hook_dir $GITUSER)
 mkdir -p $HOOK_DIR
 chown $GITUSER:$GITUSER $HOOK_DIR
 
-sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
-    cat<<EOF | indent
-??? For updating use:
-??? sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
-EOF
+#sudo -u $GITUSER -H $_BASEDIR/meteor-deploy setup
+echo "Install scripts" | task
+sudo -u $GITUSER -H \
+     cp -vf $_BASEDIR/meteor-deploy /home/$GITUSER/bin/ | indent
+
+sudo -u $GITUSER -H \
+     cp -rv $_BASEDIR/../lib /home/$GITUSER/ | indent
+
 
 if [ ! -e /home/$GITUSER/.ssh/authorized_keys ]; then
     cat<<EOF | indent
