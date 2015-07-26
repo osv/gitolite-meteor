@@ -109,6 +109,26 @@ if [ ! -e /home/$GITUSER/.ssh/authorized_keys ]; then
 EOF
 fi
 
+# setup pre recieve hook
+PRE_RECEIVE=/home/$GITUSER/.gitolite/hooks/common/pre-receive
+echo "Install pre recieve hook" | task
+cat <<EOF> $PRE_RECEIVE
+#!/bin/bash 
+
+# extract repo name
+DIR=\$(pwd)
+FILENAME="\${DIR##*/}"
+REPONAME=\$(echo "\$FILENAME" | cut -d'.' -f1)
+
+# call hook
+$BINDIR/meteor-deploy prereceive-hook "\$REPONAME"
+
+EOF
+
+chmod +x $PRE_RECEIVE
+chown $GITUSER:$GITUSER $PRE_RECEIVE
+echo $PRE_RECEIVE | indent
+
 echo "Done." | task
 cat<<EOF | indent
 ??? No you can setup git hook:
