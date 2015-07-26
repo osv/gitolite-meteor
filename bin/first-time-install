@@ -49,7 +49,7 @@ if [ ! -e $GITOLITE ]; then
 
     echo "Installing gitolite" | task
 
-    sudo adduser \
+    adduser \
         --system \
         --shell /bin/bash \
         --gecos 'git control system' \
