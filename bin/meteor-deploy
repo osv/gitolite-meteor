@@ -231,7 +231,7 @@ build_all() {
 
     NODE_DIR=$TMP_WORK_DIR/nodejs
     echo "Install Node.js" | task
-    setup_node $NODE_DIR '0.10.36'
+    setup_node $NODE_DIR $NODE_VER
 
   BUNDLE_DIR=$TMP_WORK_DIR
   BUNDLE=$BUNDLE_DIR/bundle
