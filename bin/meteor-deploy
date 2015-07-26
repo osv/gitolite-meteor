@@ -178,7 +178,8 @@ EOF
 
     mkdir -p $HOOK_DIR
 
-    echo "Run post install scripts in $HOOK_DIR" | task   
+    echo "Run post install scripts in $HOOK_DIR" | task
+    echo "Put your script here if you need post install" | indent
 
     for file in $HOOK_DIR/*
     do
