@@ -111,7 +111,18 @@ compile() {
 deploy() {
     local REPO=$1 WRK_DIR=$2
    
-    APP_PATH=$(apps_dir)/$REPO;
+    APP_PATH=$(apps_dir)/$REPO; OLD_APP_PATH=${APP_PATH}.old
+
+    # remove old app, if it exists
+    if [ -d $OLD_APP_PATH ]; then
+        rm -rf $OLD_APP_PATH;
+    fi
+
+    ## backup current version
+    if [[ -d $APP_PATH ]]; then
+        echo "Make backup for old app to $OLD_APP_PATH" | indent
+        mv $APP_PATH $OLD_APP_PATH
+    fi
 
     # mov work dir to 
     mv $WRK_DIR $APP_PATH
